@@ -1,3 +1,5 @@
+https://mattclarke873.github.io/dailit/
+
 # Dial it
 
 Scope clicks, bullet drop, rifle profiles, shooting log and dope card. Works with no signal. Syncs to Dropbox when it can.
