@@ -57,6 +57,7 @@ function openLog(id, prefill) {
   $("leWhen").value = LE.when;
   $("lePlace").value = LE.place;
   fillRifleSelect(LE.pid);
+  fillPlaceList();
   fillAmmoSelect($("leAmmo"), logAmmo(LE), LE.ammoName);
   $("leDist").value = LE.dist;
   $("leShots").value = LE.shots;

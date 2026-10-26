@@ -612,7 +612,20 @@
           ><input class="txt" id="amName" autocomplete="off" placeholder="Federal 150gr SP" />
         </div>
         <div class="fld">
-          <label for="amCal">Calibre</label><input class="txt" id="amCal" autocomplete="off" placeholder=".308 Win" />
+          <label for="amCal">Calibre</label
+          ><input
+            class="txt"
+            id="amCal"
+            list="calList"
+            autocomplete="off"
+            autocapitalize="off"
+            spellcheck="false"
+            placeholder="Start typing, then pick from your list"
+          />
+          <p class="hint" id="amCalOut" style="margin-top: 2px"></p>
+          <button type="button" class="linkish" id="amCalAdd" hidden style="align-self: flex-start; padding: 4px 0">
+            Add it as a new calibre
+          </button>
         </div>
         <div class="row">
           <span class="lb" id="amTypeLbl">Kind</span>
@@ -627,7 +640,7 @@
         <div class="rows">
           <div class="fld">
             <label for="hlBullet">Bullet</label
-            ><input class="txt" id="hlBullet" autocomplete="off" placeholder="Sierra MatchKing HPBT" />
+            ><input class="txt" id="hlBullet" list="dlBullet" autocomplete="off" placeholder="Sierra MatchKing HPBT" />
           </div>
           <div class="row">
             <label for="hlWt">Bullet weight</label><input class="num" id="hlWt" inputmode="decimal" /><span
@@ -637,7 +650,7 @@
           </div>
           <div class="fld">
             <label for="hlPowder">Powder</label
-            ><input class="txt" id="hlPowder" autocomplete="off" placeholder="Make and name" />
+            ><input class="txt" id="hlPowder" list="dlPowder" autocomplete="off" placeholder="Make and name" />
           </div>
           <div class="row">
             <label for="hlCharge">Charge</label><input class="num" id="hlCharge" inputmode="decimal" /><span
@@ -647,11 +660,11 @@
           </div>
           <div class="fld">
             <label for="hlPrimer">Primer</label
-            ><input class="txt" id="hlPrimer" autocomplete="off" placeholder="Make and type" />
+            ><input class="txt" id="hlPrimer" list="dlPrimer" autocomplete="off" placeholder="Make and type" />
           </div>
           <div class="fld">
             <label for="hlCase">Brass</label
-            ><input class="txt" id="hlCase" autocomplete="off" placeholder="Make, how many firings" />
+            ><input class="txt" id="hlCase" list="dlCase" autocomplete="off" placeholder="Make, how many firings" />
           </div>
           <div class="row">
             <label for="hlCoal">COAL</label><input class="num" id="hlCoal" inputmode="decimal" />
@@ -672,12 +685,6 @@
               placeholder="Seating, crimp, jump to lands, what you're testing"
             ></textarea>
           </div>
-        </div>
-      </div>
-      <div class="rows" style="margin-top: 16px">
-        <div class="row">
-          <label for="amHold">Certificate limit (this calibre)</label
-          ><input class="num" id="amHold" inputmode="numeric" />
         </div>
       </div>
       <div class="stats">
@@ -875,7 +882,7 @@
         <div class="fld"><label for="leWhen">When</label><input class="txt" id="leWhen" type="datetime-local" /></div>
         <div class="fld">
           <label for="lePlace">Where</label
-          ><input class="txt" id="lePlace" autocomplete="off" placeholder="Range or estate" />
+          ><input class="txt" id="lePlace" list="dlPlace" autocomplete="off" placeholder="Range or estate" />
         </div>
         <div class="fld">
           <label for="leRifle">Rifle</label
@@ -966,9 +973,18 @@
       <div id="dSaved" hidden><div id="dopeBody" style="margin-top: 12px"></div></div>
     </main>
 
-    <!-- SYNC -->
+    <!-- SETTINGS: calibres, Dropbox sync, backup -->
     <main class="view" id="vSync" hidden>
-      <div class="top"><h1>Sync</h1></div>
+      <div class="top"><h1>Settings</h1></div>
+      <div class="sec" style="margin-top: 0">Calibres and certificate limits</div>
+      <div id="calList2"></div>
+      <button type="button" class="ghost small-btn add" id="addCal">Add calibre</button>
+      <p class="hint">
+        Ammo picks its calibre from this list, so stock adds up under one name. The limit is the number of rounds your
+        certificate allows for that calibre.
+      </p>
+
+      <div class="sec" style="margin-top: 32px">Dropbox sync</div>
       <div class="status">
         <div class="dot" id="sDot"></div>
         <div>
@@ -1031,6 +1047,50 @@
         /></label>
       </div>
     </main>
+
+    <!-- CALIBRE EDIT -->
+    <main class="view" id="vCalEd" hidden>
+      <div class="top back">
+        <button type="button" class="round" id="calBack" aria-label="Back">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M15 18l-6-6 6-6"></path>
+          </svg>
+        </button>
+        <h1 id="ceTitle">Calibre</h1>
+      </div>
+      <div class="rows">
+        <div class="fld">
+          <label for="ceName">Calibre</label
+          ><input class="txt" id="ceName" autocomplete="off" placeholder=".308 Win, as on your certificate" />
+        </div>
+        <div class="row">
+          <label for="ceLimit">Certificate limit (rounds)</label><input class="num" id="ceLimit" inputmode="numeric" />
+        </div>
+      </div>
+      <p class="hint" id="ceInfo"></p>
+      <p class="err" id="ceErr" role="status"></p>
+      <div class="btns">
+        <button type="button" class="danger" id="ceDel">Delete</button>
+        <button type="button" class="solid" id="ceSave">Save calibre</button>
+      </div>
+    </main>
+
+    <datalist id="calList"></datalist>
+    <datalist id="dlBullet"></datalist>
+    <datalist id="dlPowder"></datalist>
+    <datalist id="dlPrimer"></datalist>
+    <datalist id="dlCase"></datalist>
+    <datalist id="dlPlace"></datalist>
 
     <nav class="tabs" aria-label="Sections">
       <div class="tabs-in">
@@ -1109,8 +1169,11 @@
             stroke-linejoin="round"
             aria-hidden="true"
           >
-            <path d="M7 18a4 4 0 0 1-.6-8A6 6 0 0 1 18 9a4.5 4.5 0 0 1 0 9z"></path></svg
-          >Sync
+            <circle cx="12" cy="12" r="3"></circle>
+            <path
+              d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"
+            ></path></svg
+          >Settings
         </button>
       </div>
     </nav>
@@ -1128,6 +1191,7 @@
     <script src="js/dope.js"></script>
     <script src="js/rifles.js"></script>
     <script src="js/ammo.js"></script>
+    <script src="js/cals.js"></script>
     <script src="js/chrono.js"></script>
     <script src="js/log.js"></script>
     <script src="js/backup.js"></script>

@@ -211,6 +211,7 @@ async function sync(manual) {
     else if (r.status !== 409) throw new Error("Dropbox error " + r.status);
     DB = merge(DB, remote);
     ensureProfile();
+    ensureCals();
     saveDB();
     var u = await dbxCall("https://content.dropboxapi.com/2/files/upload", {
       method: "POST",

@@ -82,6 +82,7 @@ $("bkIn").addEventListener("change", function () {
         return;
       DB = merged;
       ensureProfile();
+      ensureCals();
       if (d.local && d.local.active && byId("profiles", d.local.active) && !byId("profiles", L.active))
         L.active = d.local.active;
       saveL();

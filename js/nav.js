@@ -16,6 +16,7 @@ var TAB_OF = {
   vLogEd: "vLog",
   vDope: "vDope",
   vSync: "vSync",
+  vCalEd: "vSync",
 };
 function show(id) {
   Object.keys(TAB_OF).forEach(function (v) {
@@ -33,7 +34,10 @@ function openView(v) {
   if (v === "vKit") renderKit();
   if (v === "vLog") renderLog();
   if (v === "vDope") renderDope();
-  if (v === "vSync") paintSync();
+  if (v === "vSync") {
+    paintSync();
+    renderCals();
+  }
   show(v);
 }
 function openKit(tab) {

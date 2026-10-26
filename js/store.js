@@ -2,9 +2,9 @@
 "use strict";
 
 /* ===== storage =====
-   DB (synced): profiles, log, dope, stock, stockEv, chrono. Every item: id, u (updated ms), del (tombstone).
+   DB (synced): profiles, log, dope, stock, stockEv, chrono, cals (calibres and certificate limits). Every item: id, u (updated ms), del (tombstone).
    L (this phone only): active rifle, dial inputs, air, Dropbox tokens. */
-var COLL = ["profiles", "log", "dope", "stock", "stockEv", "chrono"];
+var COLL = ["profiles", "log", "dope", "stock", "stockEv", "chrono", "cals"];
 var DB = { v: 2 };
 COLL.forEach(function (k) {
   DB[k] = [];
@@ -148,6 +148,7 @@ function load() {
     }
   } catch (e) {}
   ensureProfile();
+  ensureCals();
   saveDB();
   saveL();
 }

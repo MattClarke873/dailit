@@ -16,7 +16,7 @@ Scope clicks, bullet drop, rifle profiles, shooting log and dope card. Works wit
 1. dropbox.com/developers › Create app › Scoped access › App folder › name it (for example `DialIt`).
 2. Permissions tab: tick `files.content.read` and `files.content.write`, then Submit.
 3. Settings tab: copy the App key. No redirect URI needed.
-4. In the home screen app: Sync tab › paste App key › Get code.
+4. In the home screen app: Settings tab › paste App key › Get code.
 5. Dropbox opens. Sign in, press Allow, copy the code it shows.
 6. Back in the app: paste the code › Link Dropbox.
 
@@ -41,10 +41,10 @@ Upload the folders as well as the files when you put it on GitHub Pages.
 
 ## What's where
 - **Dial**: rifle, air, target range, angle (Measure uses the tilt sensor), wind clock (Use forecast wind uses the compass), where it hit (or Group from photo). Results show Range and wind or Fix my miss, two turrets, and a reticle hold.
-- **Kit**: Rifles (round count, cleaning, barrel life, True the gun), Ammo (factory or home load with recipe; stock vs certificate limit per calibre; Retire keeps history; Stock report to print or export for your FEO), Chrono (average, ES, SD, set as muzzle speed).
+- **Kit**: Rifles (round count, cleaning, barrel life, True the gun), Ammo (factory or home load with recipe; pick the calibre from your list in Settings, so stock adds up under one name; stock vs certificate limit per calibre; Retire keeps history; Stock report to print or export for your FEO), Chrono (average, ES, SD, set as muzzle speed).
 - **Log**: sessions and shots, CSV export.
 - **Dope**: printable range card for the rifle in use, plus saved ranges.
-- **Sync**: Dropbox, plus Backup: save everything to one file and restore it. Restoring merges; newer changes win.
+- **Settings**: calibres and certificate limits, Dropbox sync, and Backup: save everything to one file and restore it. Restoring merges; newer changes win.
 
 ## Night mode
 The moon button on the Dial tab switches to red on black, to keep your night vision. Press it again for day.

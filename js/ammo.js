@@ -87,33 +87,12 @@ function ammoTotals(sid, from, to) {
   });
   return t;
 }
-function calKey(c) {
-  return (
-    String(c || "")
-      .trim()
-      .toLowerCase()
-      .replace(/\s+/g, " ") || "(no calibre)"
-  );
-}
-function calLimit(cal) {
-  var m = 0;
-  live(DB.stock).forEach(function (s) {
-    if (calKey(s.cal) === calKey(cal)) {
-      var v = parseInt(s.hold, 10);
-      if (v > m) m = v;
-    }
-  });
-  return m;
-}
-function calHeld(cal) {
-  return live(DB.stock).reduce(function (t, s) {
-    return t + (calKey(s.cal) === calKey(cal) ? stockHeld(s.id) : 0);
-  }, 0);
-}
+/* calKey, calOf, calLimit and calHeld are in cals.js. */
 function stockWarn(s, held) {
-  var lim = calLimit(s.cal),
-    tot = calHeld(s.cal),
-    label = s.cal ? s.cal + " in total" : "In total";
+  var c = calOf(s),
+    lim = calLimit(c),
+    tot = calHeld(c),
+    label = c ? c.name + " in total" : "In total";
   if (lim > 0 && tot > lim) return label + ": " + tot + ", over the certificate limit of " + lim + ".";
   if (lim > 0 && tot >= lim * 0.9) return label + ": " + tot + ", close to the certificate limit of " + lim + ".";
   if (held < 0) return "Below zero. Add what you bought or loaded, or set the count.";
@@ -125,13 +104,15 @@ function renderAmmo() {
     return (a.name || "").localeCompare(b.name || "");
   });
   if (!all.length) {
-    $("ammoList").innerHTML = '<p class="empty">No ammo yet. Add each type you hold, with your certificate limits.</p>';
+    $("ammoList").innerHTML =
+      '<p class="empty">No ammo yet. Add your calibres and limits in Settings, then add each ammo you hold.</p>';
     return;
   }
   function list(ss) {
     var h = '<div class="items">';
     ss.forEach(function (s) {
       var held = stockHeld(s.id),
+        c = calOf(s),
         w = stockWarn(s, held),
         rec = ammoRecipe(s);
       h +=
@@ -145,7 +126,7 @@ function renderAmmo() {
         '<div class="s">' +
         (rec ? esc(rec) + "<br>" : "") +
         esc(
-          [s.cal, held + " in stock", calLimit(s.cal) ? "certificate limit " + calLimit(s.cal) : ""]
+          [c ? c.name : s.cal, held + " in stock", calLimit(c) ? "certificate limit " + calLimit(c) : ""]
             .filter(Boolean)
             .join(", "),
         ) +
@@ -182,7 +163,7 @@ function openAmmo(id) {
         del: false,
         name: "",
         cal: "",
-        hold: "",
+        calId: "",
         type: "factory",
         lenU: "in",
         retired: false,
@@ -191,8 +172,10 @@ function openAmmo(id) {
   if (!AM.lenU) AM.lenU = "in";
   $("amTitle").textContent = amIsNew ? "New ammo" : "Ammo";
   $("amName").value = AM.name;
-  $("amCal").value = AM.cal;
-  $("amHold").value = AM.hold;
+  var ac = calOf(AM);
+  $("amCal").value = ac ? ac.name : AM.cal || "";
+  fillAmmoLists();
+  paintAmmoCal();
   HL_FIELDS.forEach(function (k) {
     $("hl" + k.charAt(0).toUpperCase() + k.slice(1)).value = AM[k] || "";
   });
@@ -222,17 +205,18 @@ function paintAmmoEd() {
   $("amIn").textContent = tot.inn;
   $("amUsed").textContent = tot.fired;
   $("amAdj").textContent = (tot.adj > 0 ? "+" : "") + tot.adj;
-  AM.hold = $("amHold").value;
-  AM.cal = $("amCal").value;
+  var ac = calMatch($("amCal").value);
+  AM.cal = ac ? ac.name : $("amCal").value.trim();
+  AM.calId = ac ? ac.id : "";
   var w = stockWarn(AM, held),
-    lim = calLimit(AM.cal),
+    lim = calLimit(ac),
     q = parseInt($("amQty").value, 10),
-    after = calHeld(AM.cal) + (amKind === "buy" ? q : amKind === "set" ? q - held : 0);
+    after = calHeld(ac) + (amKind === "buy" ? q : amKind === "set" ? q - held : 0);
   if (amKind !== "use" && lim > 0 && q > 0 && after > lim)
     w =
       (w ? w + " " : "") +
       "That would take " +
-      (AM.cal || "this calibre") +
+      (ac ? ac.name : "this calibre") +
       " to " +
       after +
       ", over the certificate limit of " +
@@ -284,13 +268,14 @@ segVal($("hlLenU"), function (v) {
   AM.lenU = v;
   paintAmmoEd();
 });
-["amHold", "amQty", "amCal"].forEach(function (id) {
-  $(id).addEventListener("input", paintAmmoEd);
+$("amQty").addEventListener("input", paintAmmoEd);
+$("amCal").addEventListener("input", function () {
+  paintAmmoCal();
+  paintAmmoEd();
 });
 function saveAmmoRecord() {
   AM.name = $("amName").value.trim();
-  AM.cal = $("amCal").value.trim();
-  AM.hold = $("amHold").value.trim();
+  var ac = calMatch($("amCal").value);
   HL_FIELDS.forEach(function (k) {
     AM[k] = $("hl" + k.charAt(0).toUpperCase() + k.slice(1)).value.trim();
   });
@@ -298,6 +283,15 @@ function saveAmmoRecord() {
     $("amErr").textContent = "Give the ammo a name.";
     return false;
   }
+  if (!ac) {
+    $("amErr").textContent = $("amCal").value.trim()
+      ? "Pick the calibre from your list, or add it as a new calibre."
+      : "Pick the calibre.";
+    $("amCal").focus();
+    return false;
+  }
+  AM.cal = ac.name;
+  AM.calId = ac.id;
   AM.u = now();
   if (amIsNew) {
     DB.stock.push(AM);
@@ -432,7 +426,7 @@ function rpMoves(from) {
     mv.push({
       when: e.when,
       ammo: s.name,
-      cal: s.cal || "",
+      cal: calOf(s) ? calOf(s).name : s.cal || "",
       what: k === "buy" ? (s.type === "home" ? "Loaded" : "Bought") : k === "use" ? "Used" : "Count fix",
       qty: e.qty,
       note: e.note || "",
@@ -446,7 +440,7 @@ function rpMoves(from) {
     mv.push({
       when: x.when,
       ammo: s ? s.name : x.ammoName || "Ammo not picked",
-      cal: s ? s.cal || "" : "",
+      cal: s && calOf(s) ? calOf(s).name : s ? s.cal || "" : "",
       what: "Fired",
       qty: -n,
       note: [x.place, x.rifleName].filter(Boolean).join(", "),
@@ -463,8 +457,9 @@ function renderReport() {
     ss = live(DB.stock),
     cals = {};
   ss.forEach(function (s) {
-    var k = calKey(s.cal);
-    (cals[k] = cals[k] || { label: s.cal || "No calibre", items: [] }).items.push(s);
+    var c = calOf(s),
+      k = c ? c.name.toLowerCase() : "~";
+    (cals[k] = cals[k] || { cal: c, label: c ? c.name : "No calibre", items: [] }).items.push(s);
   });
   $("rpHeadP").textContent =
     "Made " +
@@ -491,8 +486,8 @@ function renderReport() {
     '<table class="card"><thead><tr><th class="l">Calibre / ammo</th><th>In stock</th><th>Limit</th></tr></thead><tbody>';
   keys.forEach(function (k) {
     var c = cals[k],
-      tot = calHeld(c.items[0].cal),
-      lim = calLimit(c.items[0].cal);
+      tot = calHeld(c.cal),
+      lim = calLimit(c.cal);
     h +=
       '<tr class="tot"><td class="l">' +
       esc(c.label) +
@@ -614,7 +609,13 @@ $("rpCsv").addEventListener("click", function () {
   var csv = "Held now\nCalibre,Ammo,Kind,In stock,Certificate limit\n";
   live(DB.stock).forEach(function (s) {
     csv +=
-      [s.cal, s.name, s.type === "home" ? "Home load" : "Factory", stockHeld(s.id), calLimit(s.cal) || ""]
+      [
+        calOf(s) ? calOf(s).name : s.cal,
+        s.name,
+        s.type === "home" ? "Home load" : "Factory",
+        stockHeld(s.id),
+        calLimit(calOf(s)) || "",
+      ]
         .map(csvCell)
         .join(",") + "\n";
   });
