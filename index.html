@@ -175,6 +175,11 @@ table.card td{font-size:16px;text-align:right;padding:9px 4px;border-bottom:1px 
 table.card th:first-child,table.card td:first-child{text-align:left}
 table.card td:first-child{font-weight:800;font-stretch:115%}
 table.card td.cl{font-weight:700}
+.rep table.card td{font-size:14px;padding:8px 4px}
+.rep table.card td:first-child{font-weight:700;font-stretch:100%}
+.rep table.card td.l,.rep table.card th.l{text-align:left}
+.rep table.card tr.tot td{font-weight:800;border-bottom:1.5px solid var(--ink)}
+.moves-wrap{overflow-x:auto}
 
 /* photo */
 .photo-box{position:relative;margin-top:12px}
@@ -207,14 +212,18 @@ table.card td.cl{font-weight:700}
   @page{margin:12mm}
   html,body{background:#fff}
   body *{visibility:hidden}
-  #printCard,#printCard *{visibility:visible}
-  #printCard{position:absolute;left:0;top:0;width:100%}
+  .print-on,.print-on *{visibility:visible}
+  .print-on{position:absolute;left:0;top:0;width:100%}
+  .rep .sec{font-size:12pt;margin:12pt 0 4pt}
+  .rep table.card td{font-size:10pt;padding:3pt 4pt}
+  .rep table.card tr{break-inside:avoid}
   .card-head{display:block;margin-bottom:8px}
   .card-head h3{margin:0;font-size:18pt;font-weight:800}
   .card-head p{margin:2pt 0 0;font-size:10pt;color:#333}
   table.card th{font-size:9pt;color:#333}
   table.card td{font-size:12pt;padding:5pt 4pt}
   .tabs,.toast{display:none}
+  #rpWhen{display:none}
 }
 </style>
 </head>
@@ -424,7 +433,10 @@ table.card td.cl{font-weight:700}
   </div>
   <div id="kAmmo" style="margin-top:16px" hidden>
     <div id="ammoList"></div>
-    <button type="button" class="ghost small-btn add" id="addAmmo">Add ammo or home load</button>
+    <div class="tools" style="margin-top:16px">
+      <button type="button" class="ghost small-btn" id="addAmmo">Add ammo or home load</button>
+      <button type="button" class="solid small-btn" id="openReport">Stock report</button>
+    </div>
     <p class="hint">Shots in the log come off the ammo picked in each entry. Factory or home load.</p>
   </div>
   <div id="kChrono" style="margin-top:16px" hidden>
@@ -511,12 +523,14 @@ table.card td.cl{font-weight:700}
     </div>
   </div>
   <div class="rows" style="margin-top:16px">
-    <div class="row"><label for="amHold">Certificate: may hold</label><input class="num" id="amHold" inputmode="numeric"></div>
+    <div class="row"><label for="amHold">Certificate: may hold (this calibre)</label><input class="num" id="amHold" inputmode="numeric"></div>
     <div class="row"><label for="amBuy">Certificate: may buy at once</label><input class="num" id="amBuy" inputmode="numeric"></div>
   </div>
-  <div class="big-out">
+  <div class="stats">
     <div><span class="k">In stock</span><span class="v" id="amHeld"></span></div>
-    <div><span class="k">Used in log</span><span class="v" id="amUsed"></span></div>
+    <div><span class="k" id="amInK">Bought ever</span><span class="v" id="amIn"></span></div>
+    <div><span class="k">Fired ever</span><span class="v" id="amUsed"></span></div>
+    <div><span class="k">Count fixes</span><span class="v" id="amAdj"></span></div>
   </div>
   <p class="hint" id="amWarn"></p>
   <div class="sec">Add a change</div>
@@ -529,9 +543,41 @@ table.card td.cl{font-weight:700}
   <div class="sec">History</div>
   <div id="amHist"></div>
   <p class="err" id="amErr" role="status"></p>
+  <div class="tools">
+    <button type="button" class="ghost small-btn" id="amRetire">Retire</button>
+    <button type="button" class="danger small-btn" id="amDel">Delete</button>
+  </div>
+  <p class="hint">Retire a finished batch to keep its history in the stock report. Delete removes it from the report too.</p>
   <div class="btns">
-    <button type="button" class="danger" id="amDel">Delete</button>
     <button type="button" class="solid" id="amSave">Save ammo</button>
+  </div>
+</main>
+
+<!-- STOCK REPORT -->
+<main class="view" id="vReport" hidden>
+  <div class="top back">
+    <button type="button" class="round" data-kit="ammo" aria-label="Back to kit">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg>
+    </button>
+    <h1>Stock report</h1>
+  </div>
+  <div class="seg wide" role="group" aria-label="Period" id="rpPeriod">
+    <button type="button" data-v="year">This year</button><button type="button" data-v="12m">Last 12 months</button><button type="button" data-v="all">All time</button>
+  </div>
+  <div id="printReport" class="rep">
+    <div class="card-head"><h3>Ammunition stock and use</h3><p id="rpHeadP"></p></div>
+    <p class="hint" id="rpWhen" style="margin-top:12px"></p>
+    <div class="sec">Held now, by calibre</div>
+    <div id="rpHeld"></div>
+    <div class="sec" id="rpActT">In and out</div>
+    <div id="rpAct"></div>
+    <div class="sec">Every movement</div>
+    <div id="rpMoves"></div>
+    <p class="hint" id="rpNote"></p>
+  </div>
+  <div class="tools">
+    <button type="button" class="solid small-btn" id="rpPrint">Print or save PDF</button>
+    <button type="button" class="ghost small-btn" id="rpCsv">Export CSV</button>
   </div>
 </main>
 
@@ -777,7 +823,7 @@ function byId(coll,id){return DB[coll].filter(function(x){return x.id===id;})[0]
 function changed(){saveDB();scheduleSync();}
 
 /* ===== navigation ===== */
-var TAB_OF={vIn:"vIn",vRes:"vIn",vAir:"vIn",vPhoto:"vIn",vKit:"vKit",vRifleEd:"vKit",vAmmoEd:"vKit",vChronoEd:"vKit",vLog:"vLog",vLogEd:"vLog",vDope:"vDope",vSync:"vSync"};
+var TAB_OF={vIn:"vIn",vRes:"vIn",vAir:"vIn",vPhoto:"vIn",vKit:"vKit",vRifleEd:"vKit",vAmmoEd:"vKit",vReport:"vKit",vChronoEd:"vKit",vLog:"vLog",vLogEd:"vLog",vDope:"vDope",vSync:"vSync"};
 function show(id){
   Object.keys(TAB_OF).forEach(function(v){$(v).hidden=(v!==id);});
   document.querySelectorAll(".tab").forEach(function(t){
@@ -1357,7 +1403,12 @@ function renderCard(fromInput){
   $("pcTitle").textContent=(p.name||"Rifle")+" range card";
   $("pcSub").textContent=[p.load,rifleSummary(p),"Scope "+p.sh+" "+p.shU+", "+clkName(clk)+" "+sys+" clicks",airShort(),"Made "+new Date().toLocaleDateString("en-GB")].filter(Boolean).join(". ");
 }
-$("printCardBtn").addEventListener("click",function(){renderCard();window.print();});
+function printPart(id){
+  var el=$(id);el.classList.add("print-on");
+  var done=function(){el.classList.remove("print-on");window.removeEventListener("afterprint",done);};
+  window.addEventListener("afterprint",done);window.print();setTimeout(done,60000);
+}
+$("printCardBtn").addEventListener("click",function(){renderCard();printPart("printCard");});
 
 /* ===== kit ===== */
 segVal($("kitSeg"),function(v){L.kitTab=v;saveL();renderKit();});
@@ -1478,41 +1529,64 @@ function ammoRecipe(s){
     s.primer,s.case,s.coal?"COAL "+s.coal+" "+u:"",s.cbto?"CBTO "+s.cbto+" "+u:"",s.batch].filter(Boolean).join(", ");
 }
 function fillAmmoSelect(el,val,fallbackName){
-  var h='<option value="">Not set</option>',ss=live(DB.stock);
-  ss.forEach(function(s){h+='<option value="'+esc(s.id)+'">'+esc(s.name)+(s.type==="home"?" (home load)":"")+'</option>';});
+  var h='<option value="">Not set</option>',ss=live(DB.stock).filter(function(s){return !s.retired||s.id===val;});
+  ss.forEach(function(s){h+='<option value="'+esc(s.id)+'">'+esc(s.name)+(s.type==="home"?" (home load)":"")+(s.retired?" (retired)":"")+'</option>';});
   if(val&&!ss.some(function(s){return s.id===val;}))h+='<option value="'+esc(val)+'">'+esc(fallbackName||"Deleted ammo")+'</option>';
   el.innerHTML=h;el.value=val||"";
 }
+/* Stock changes carry a kind: buy (bought or loaded), use (fired or used outside the log), set (count fix).
+   Older changes without a kind are read from their sign and note. */
+function evKind(e){if(e.kind)return e.kind;if(e.qty<0)return "use";return e.note==="Counted"?"set":"buy";}
 function stockHeld(sid){return live(DB.stockEv).reduce(function(t,e){return t+(e.sid===sid?(e.qty||0):0);},0)-stockUsed(sid);}
+function inRange(when,from,to){var w=String(when||"");return (!from||w>=from)&&(!to||w<=to);}
+/* Totals for one ammo between two local ISO dates (either can be empty). */
+function ammoTotals(sid,from,to){
+  var t={inn:0,fired:0,adj:0};
+  live(DB.stockEv).forEach(function(e){
+    if(e.sid!==sid||!inRange(e.when,from,to))return;var k=evKind(e);
+    if(k==="buy")t.inn+=e.qty;else if(k==="use")t.fired+=-e.qty;else t.adj+=e.qty;
+  });
+  live(DB.log).forEach(function(x){if(logAmmo(x)===sid&&inRange(x.when,from,to))t.fired+=parseInt(x.shots,10)||0;});
+  return t;
+}
+function calKey(c){return String(c||"").trim().toLowerCase().replace(/\s+/g," ")||"(no calibre)";}
+function calLimit(cal){
+  var m=0;live(DB.stock).forEach(function(s){if(calKey(s.cal)===calKey(cal)){var v=parseInt(s.hold,10);if(v>m)m=v;}});return m;
+}
+function calHeld(cal){return live(DB.stock).reduce(function(t,s){return t+(calKey(s.cal)===calKey(cal)?stockHeld(s.id):0);},0);}
 function stockWarn(s,held){
-  var lim=parseInt(s.hold,10);
-  if(lim>0&&held>lim)return "Over the certificate limit of "+lim+".";
-  if(lim>0&&held>=lim*0.9)return "Close to the certificate limit of "+lim+".";
-  if(held<0)return "Below zero. Add what you bought, or set the count.";
+  var lim=calLimit(s.cal),tot=calHeld(s.cal),label=s.cal?s.cal+" in total":"In total";
+  if(lim>0&&tot>lim)return label+": "+tot+", over the certificate limit of "+lim+".";
+  if(lim>0&&tot>=lim*0.9)return label+": "+tot+", close to the certificate limit of "+lim+".";
+  if(held<0)return "Below zero. Add what you bought or loaded, or set the count.";
+  if(s.retired&&held>0)return "Retired but "+held+" still in stock.";
   return "";
 }
 function renderAmmo(){
-  var ss=live(DB.stock).sort(function(a,b){return (a.name||"").localeCompare(b.name||"");});
-  if(!ss.length){$("ammoList").innerHTML='<p class="empty">No ammo yet. Add each type you hold, with your certificate limits.</p>';return;}
-  var h='<div class="items">';
-  ss.forEach(function(s){
-    var held=stockHeld(s.id),w=stockWarn(s,held);
-    var rec=ammoRecipe(s);
-    h+='<div class="item"><button type="button" class="main" data-ammo="'+esc(s.id)+'"><div class="n">'+esc(s.name)+(s.type==="home"?' <span class="tag">Home load</span>':'')+(w?' <span class="tag warn">Check</span>':'')+'</div>'+
-      '<div class="s">'+(rec?esc(rec)+'<br>':'')+esc([s.cal,held+" in stock",s.hold?"may hold "+s.hold:""].filter(Boolean).join(", "))+(w?'<br><span class="warn">'+esc(w)+'</span>':'')+'</div></button></div>';
-  });
-  $("ammoList").innerHTML=h+'</div>';
+  var all=live(DB.stock).sort(function(a,b){return (a.name||"").localeCompare(b.name||"");});
+  if(!all.length){$("ammoList").innerHTML='<p class="empty">No ammo yet. Add each type you hold, with your certificate limits.</p>';return;}
+  function list(ss){
+    var h='<div class="items">';
+    ss.forEach(function(s){
+      var held=stockHeld(s.id),w=stockWarn(s,held),rec=ammoRecipe(s);
+      h+='<div class="item"><button type="button" class="main" data-ammo="'+esc(s.id)+'"><div class="n">'+esc(s.name)+(s.type==="home"?' <span class="tag">Home load</span>':'')+(w?' <span class="tag warn">Check</span>':'')+'</div>'+
+        '<div class="s">'+(rec?esc(rec)+'<br>':'')+esc([s.cal,held+" in stock",calLimit(s.cal)?"calibre may hold "+calLimit(s.cal):""].filter(Boolean).join(", "))+(w?'<br><span class="warn">'+esc(w)+'</span>':'')+'</div></button></div>';
+    });
+    return h+'</div>';
+  }
+  var act=all.filter(function(s){return !s.retired;}),ret=all.filter(function(s){return s.retired;});
+  $("ammoList").innerHTML=(act.length?list(act):'<p class="empty">Nothing in use.</p>')+(ret.length?'<div class="day" style="margin-top:20px">Retired</div>'+list(ret):'');
 }
 $("ammoList").addEventListener("click",function(e){var b=e.target.closest("[data-ammo]");if(b)openAmmo(b.getAttribute("data-ammo"));});
 var AM=null,amIsNew=false,amKind="buy";
 function openAmmo(id){
   var src=id?byId("stock",id):null;amIsNew=!src;
-  AM=src?JSON.parse(JSON.stringify(src)):{id:uid(),u:now(),del:false,name:"",cal:"",hold:"",buy:"",type:"factory",lenU:"in"};
+  AM=src?JSON.parse(JSON.stringify(src)):{id:uid(),u:now(),del:false,name:"",cal:"",hold:"",buy:"",type:"factory",lenU:"in",retired:false};
   if(!AM.type)AM.type="factory";if(!AM.lenU)AM.lenU="in";
   $("amTitle").textContent=amIsNew?"New ammo":"Ammo";
   $("amName").value=AM.name;$("amCal").value=AM.cal;$("amHold").value=AM.hold;$("amBuy").value=AM.buy;
   HL_FIELDS.forEach(function(k){$("hl"+k.charAt(0).toUpperCase()+k.slice(1)).value=AM[k]||"";});
-  $("amQty").value="";$("amNote").value="";amKind="buy";$("amDel").hidden=amIsNew;$("amErr").textContent="";
+  $("amQty").value="";$("amNote").value="";amKind="buy";$("amErr").textContent="";
   paintAmmoEd();show("vAmmoEd");
 }
 function paintAmmoEd(){
@@ -1520,16 +1594,20 @@ function paintAmmoEd(){
   setSeg($("amType"),AM.type);setSeg($("hlLenU"),AM.lenU);$("hlBlock").hidden=!home;
   $("amKindBuy").textContent=home?"Loaded":"Bought";$("amName").placeholder=home?"168 SMK, 43.0 Varget":"Federal 150gr SP";
   $("amNote").placeholder=home?"Batch, brass lot":"Shop, batch, lot number";
+  $("amInK").textContent=home?"Loaded ever":"Bought ever";
+  $("amRetire").textContent=AM.retired?"Bring back":"Retire";$("amRetire").hidden=amIsNew;$("amDel").hidden=amIsNew;
   setSeg($("amKind"),amKind);
-  var held=stockHeld(AM.id);$("amHeld").textContent=held;$("amUsed").textContent=stockUsed(AM.id);
-  AM.hold=$("amHold").value;var w=stockWarn(AM,held),bl=parseInt($("amBuy").value,10),q=parseInt($("amQty").value,10);
+  var held=stockHeld(AM.id),tot=ammoTotals(AM.id);
+  $("amHeld").textContent=held;$("amIn").textContent=tot.inn;$("amUsed").textContent=tot.fired;$("amAdj").textContent=(tot.adj>0?"+":"")+tot.adj;
+  AM.hold=$("amHold").value;AM.cal=$("amCal").value;
+  var w=stockWarn(AM,held),bl=parseInt($("amBuy").value,10),q=parseInt($("amQty").value,10);
   if(amKind==="buy"&&!home&&bl>0&&q>bl)w=(w?w+" ":"")+"That buy is more than the "+bl+" allowed at once.";
   $("amWarn").textContent=w;$("amWarn").className=w?"hint warn":"hint";
   var ev=live(DB.stockEv).filter(function(e){return e.sid===AM.id;}).sort(function(a,b){return a.when<b.when?1:-1;});
-  if(!ev.length){$("amHist").innerHTML='<p class="hint" style="margin:0">No changes yet.</p>';return;}
-  var h='<div class="items">';
+  if(!ev.length){$("amHist").innerHTML='<p class="hint" style="margin:0">No changes yet. Shots from the log show in the stock report.</p>';return;}
+  var name={buy:home?"Loaded":"Bought",use:"Used",set:"Count fix"},h='<div class="items">';
   ev.forEach(function(e){
-    h+='<div class="item"><div class="main" style="cursor:default"><div class="n" style="font-size:16px">'+(e.qty>0?"+":"")+e.qty+' rounds</div><div class="s">'+esc(String(e.when).replace("T"," ")+(e.note?", "+e.note:""))+'</div></div>'+
+    h+='<div class="item"><div class="main" style="cursor:default"><div class="n" style="font-size:16px">'+name[evKind(e)]+' '+(e.qty>0?"+":"")+e.qty+'</div><div class="s">'+esc(String(e.when).replace("T"," ")+(e.note&&e.note!=="Counted"?", "+e.note:""))+'</div></div>'+
       '<button type="button" class="icon-btn" data-delev="'+esc(e.id)+'" aria-label="Remove this change">'+BACK_SVG+'</button></div>';
   });
   $("amHist").innerHTML=h+'</div>';
@@ -1537,12 +1615,12 @@ function paintAmmoEd(){
 segVal($("amKind"),function(v){amKind=v;paintAmmoEd();});
 segVal($("amType"),function(v){AM.type=v;paintAmmoEd();});
 segVal($("hlLenU"),function(v){AM.lenU=v;paintAmmoEd();});
-["amHold","amBuy","amQty"].forEach(function(id){$(id).addEventListener("input",paintAmmoEd);});
+["amHold","amBuy","amQty","amCal"].forEach(function(id){$(id).addEventListener("input",paintAmmoEd);});
 function saveAmmoRecord(){
   AM.name=$("amName").value.trim();AM.cal=$("amCal").value.trim();AM.hold=$("amHold").value.trim();AM.buy=$("amBuy").value.trim();
   HL_FIELDS.forEach(function(k){AM[k]=$("hl"+k.charAt(0).toUpperCase()+k.slice(1)).value.trim();});
   if(!AM.name){$("amErr").textContent="Give the ammo a name.";return false;}
-  AM.u=now();if(amIsNew){DB.stock.push(AM);amIsNew=false;$("amDel").hidden=false;}else DB.stock=DB.stock.map(function(s){return s.id===AM.id?AM:s;});
+  AM.u=now();if(amIsNew){DB.stock.push(AM);amIsNew=false;}else DB.stock=DB.stock.map(function(s){return s.id===AM.id?AM:s;});
   $("amErr").textContent="";return true;
 }
 $("amAdd").addEventListener("click",function(){
@@ -1550,21 +1628,100 @@ $("amAdd").addEventListener("click",function(){
   if(!saveAmmoRecord())return;
   var delta=amKind==="buy"?q:amKind==="use"?-q:q-stockHeld(AM.id);
   if(!delta){toast("No change");return;}
-  DB.stockEv.push({id:uid(),u:now(),del:false,sid:AM.id,when:localISO(),qty:delta,note:$("amNote").value.trim()||(amKind==="set"?"Counted":"")});
+  DB.stockEv.push({id:uid(),u:now(),del:false,sid:AM.id,when:localISO(),qty:delta,kind:amKind,note:$("amNote").value.trim()});
   $("amQty").value="";$("amNote").value="";changed();paintAmmoEd();toast("Change added");
 });
 $("amHist").addEventListener("click",function(e){
   var b=e.target.closest("[data-delev]");if(!b)return;
+  if(!confirm("Remove this change from the history?"))return;
   DB.stockEv.forEach(function(x){if(x.id===b.getAttribute("data-delev")){x.del=true;x.u=now();}});changed();paintAmmoEd();
 });
 $("addAmmo").addEventListener("click",function(){openAmmo(null);});
 $("amSave").addEventListener("click",function(){if(saveAmmoRecord()){changed();toast("Ammo saved");openKit("ammo");}});
+$("amRetire").addEventListener("click",function(){
+  if(!saveAmmoRecord())return;AM.retired=!AM.retired;AM.u=now();
+  DB.stock=DB.stock.map(function(s){return s.id===AM.id?AM:s;});
+  if(AM.retired)DB.profiles.forEach(function(p){if(p.stockId===AM.id){p.stockId="";p.u=now();}});
+  changed();toast(AM.retired?"Retired. History kept.":"Back in use");openKit("ammo");
+});
 $("amDel").addEventListener("click",function(){
-  if(!confirm("Delete "+(AM.name||"this ammo")+" and its history?"))return;
+  if(!confirm("Delete "+(AM.name||"this ammo")+" and its history? It will also drop out of the stock report. Retire keeps it."))return;
   DB.stock.forEach(function(s){if(s.id===AM.id){s.del=true;s.u=now();}});
   DB.stockEv.forEach(function(e){if(e.sid===AM.id&&!e.del){e.del=true;e.u=now();}});
   DB.profiles.forEach(function(p){if(p.stockId===AM.id){p.stockId="";p.u=now();}});
   changed();toast("Ammo deleted");openKit("ammo");
+});
+
+/* stock report for the firearms enquiry officer */
+function rpRange(){
+  var p=L.rpPeriod||"year",d=new Date();
+  if(p==="year")return {from:d.getFullYear()+"-01-01T00:00",label:"1 Jan "+d.getFullYear()+" to today"};
+  if(p==="12m"){var f=new Date(d.getTime());f.setFullYear(f.getFullYear()-1);return {from:localISO(f),label:f.toLocaleDateString("en-GB")+" to today"};}
+  return {from:"",label:"All records"};
+}
+function rpMoves(from){
+  var mv=[];
+  live(DB.stockEv).forEach(function(e){
+    if(!inRange(e.when,from,""))return;var s=byId("stock",e.sid);if(!s||s.del)return;var k=evKind(e);
+    mv.push({when:e.when,ammo:s.name,cal:s.cal||"",what:k==="buy"?(s.type==="home"?"Loaded":"Bought"):k==="use"?"Used":"Count fix",qty:e.qty,note:e.note||""});
+  });
+  live(DB.log).forEach(function(x){
+    var n=parseInt(x.shots,10)||0;if(!n||!inRange(x.when,from,""))return;
+    var sid=logAmmo(x),s=byId("stock",sid);
+    mv.push({when:x.when,ammo:s?s.name:(x.ammoName||"Ammo not picked"),cal:s?s.cal||"":"",what:"Fired",qty:-n,note:[x.place,x.rifleName].filter(Boolean).join(", "),noAmmo:!s});
+  });
+  return mv.sort(function(a,b){return a.when<b.when?1:-1;});
+}
+function renderReport(){
+  setSeg($("rpPeriod"),L.rpPeriod||"year");
+  var r=rpRange(),ss=live(DB.stock),cals={};
+  ss.forEach(function(s){var k=calKey(s.cal);(cals[k]=cals[k]||{label:s.cal||"No calibre",items:[]}).items.push(s);});
+  $("rpHeadP").textContent="Made "+new Date().toLocaleString("en-GB",{day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"})+". Period: "+r.label+".";
+  $("rpWhen").textContent="Made "+new Date().toLocaleDateString("en-GB")+". Period for In and out: "+r.label+".";
+  var keys=Object.keys(cals).sort();
+  if(!keys.length){$("rpHeld").innerHTML='<p class="empty">No ammo recorded.</p>';$("rpAct").innerHTML="";$("rpMoves").innerHTML="";return;}
+  var h='<table class="card"><thead><tr><th class="l">Calibre / ammo</th><th>In stock</th><th>May hold</th></tr></thead><tbody>';
+  keys.forEach(function(k){
+    var c=cals[k],tot=calHeld(c.label),lim=calLimit(c.label);
+    h+='<tr class="tot"><td class="l">'+esc(c.label)+'</td><td>'+tot+'</td><td>'+(lim||"–")+(lim&&tot>lim?' <span class="warn">over</span>':'')+'</td></tr>';
+    c.items.forEach(function(s){var hd=stockHeld(s.id);if(!hd&&s.retired)return;
+      h+='<tr><td class="l" style="font-weight:400">'+esc(s.name)+(s.type==="home"?" (home load)":"")+(s.retired?" (retired)":"")+'</td><td>'+hd+'</td><td></td></tr>';});
+  });
+  $("rpHeld").innerHTML=h+'</tbody></table>';
+  var a='<table class="card"><thead><tr><th class="l">Calibre / ammo</th><th>Bought</th><th>Loaded</th><th>Fired or used</th><th>Fixes</th></tr></thead><tbody>';
+  keys.forEach(function(k){
+    var c=cals[k],sum={b:0,l:0,f:0,x:0},rows="";
+    c.items.forEach(function(s){
+      var t=ammoTotals(s.id,r.from,""),b=s.type==="home"?0:t.inn,l=s.type==="home"?t.inn:0;
+      sum.b+=b;sum.l+=l;sum.f+=t.fired;sum.x+=t.adj;
+      if(t.inn||t.fired||t.adj)rows+='<tr><td class="l" style="font-weight:400">'+esc(s.name)+'</td><td>'+(b||"")+'</td><td>'+(l||"")+'</td><td>'+(t.fired||"")+'</td><td>'+(t.adj?(t.adj>0?"+":"")+t.adj:"")+'</td></tr>';
+    });
+    a+='<tr class="tot"><td class="l">'+esc(c.label)+'</td><td>'+sum.b+'</td><td>'+sum.l+'</td><td>'+sum.f+'</td><td>'+(sum.x>0?"+":"")+sum.x+'</td></tr>'+rows;
+  });
+  $("rpAct").innerHTML=a+'</tbody></table>';
+  var mv=rpMoves(r.from),noAmmo=mv.filter(function(m){return m.noAmmo;}).reduce(function(t,m){return t-m.qty;},0);
+  if(!mv.length)$("rpMoves").innerHTML='<p class="hint" style="margin:0">Nothing in this period.</p>';
+  else{
+    var m='<div class="moves-wrap"><table class="card"><thead><tr><th class="l">Date</th><th class="l">Ammo</th><th class="l">What</th><th>Rounds</th></tr></thead><tbody>';
+    mv.forEach(function(x){m+='<tr><td class="l" style="font-weight:400;white-space:nowrap">'+esc(String(x.when).slice(0,10).split("-").reverse().join("/"))+'</td><td class="l">'+esc(x.ammo)+(x.cal?'<br><span style="color:var(--muted);font-size:12px">'+esc(x.cal)+'</span>':'')+'</td><td class="l">'+esc(x.what)+(x.note?'<br><span style="color:var(--muted);font-size:12px">'+esc(x.note)+'</span>':'')+'</td><td>'+(x.qty>0?"+":"")+x.qty+'</td></tr>';});
+    $("rpMoves").innerHTML=m+'</tbody></table></div>';
+  }
+  $("rpNote").textContent=(noAmmo?noAmmo+" rounds in the log have no ammo picked, so they are not counted against any stock. Open those log entries and pick the ammo. ":"")+"Fired comes from the log. Count fixes are corrections made with Count is.";
+  $("rpNote").className=noAmmo?"hint warn":"hint";
+}
+$("openReport").addEventListener("click",function(){renderReport();show("vReport");});
+segVal($("rpPeriod"),function(v){L.rpPeriod=v;saveL();renderReport();});
+$("rpPrint").addEventListener("click",function(){renderReport();printPart("printReport");});
+$("rpCsv").addEventListener("click",function(){
+  var r=rpRange();
+  function c(v){v=String(v==null?"":v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;}
+  var csv="Held now\nCalibre,Ammo,Kind,In stock,Calibre may hold\n";
+  live(DB.stock).forEach(function(s){csv+=[s.cal,s.name,s.type==="home"?"Home load":"Factory",stockHeld(s.id),calLimit(s.cal)||""].map(c).join(",")+"\n";});
+  csv+="\nMovements ("+r.label+")\nDate,Calibre,Ammo,What,Rounds,Note\n";
+  rpMoves(r.from).forEach(function(m){csv+=[String(m.when).replace("T"," "),m.cal,m.ammo,m.what,m.qty,m.note].map(c).join(",")+"\n";});
+  var name="dialit-stock-"+localISO().slice(0,10)+".csv",blob=new Blob([csv],{type:"text/csv"});
+  try{var file=new File([blob],name,{type:"text/csv"});if(navigator.canShare&&navigator.canShare({files:[file]})){navigator.share({files:[file],title:"Ammo stock report"}).catch(function(){});return;}}catch(e){}
+  var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();
 });
 
 /* chrono */

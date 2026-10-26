@@ -32,7 +32,7 @@ Dial tab › Air card. Get weather here uses phone location, GPS altitude and Op
 
 ## What's where
 - **Dial**: rifle, air, target range, angle (Measure uses the tilt sensor), wind clock (Use forecast wind uses the compass), where it hit (or Group from photo). Results show Range and wind or Fix my miss, two turrets, and a reticle hold.
-- **Kit**: Rifles (round count, cleaning, barrel life, True the gun), Ammo (stock vs certificate limits; log shots come off the stock set on the rifle), Chrono (average, ES, SD, set as muzzle speed).
+- **Kit**: Rifles (round count, cleaning, barrel life, True the gun), Ammo (factory or home load with recipe; stock vs certificate limit per calibre; Retire keeps history; Stock report to print or export for your FEO), Chrono (average, ES, SD, set as muzzle speed).
 - **Log**: sessions and shots, CSV export.
 - **Dope**: printable range card for the rifle in use, plus saved ranges.
 - **Sync**: Dropbox.
