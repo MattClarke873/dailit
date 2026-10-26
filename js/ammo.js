@@ -145,7 +145,7 @@ function renderAmmo() {
         '<div class="s">' +
         (rec ? esc(rec) + "<br>" : "") +
         esc(
-          [s.cal, held + " in stock", calLimit(s.cal) ? "calibre may hold " + calLimit(s.cal) : ""]
+          [s.cal, held + " in stock", calLimit(s.cal) ? "certificate limit " + calLimit(s.cal) : ""]
             .filter(Boolean)
             .join(", "),
         ) +
@@ -183,7 +183,6 @@ function openAmmo(id) {
         name: "",
         cal: "",
         hold: "",
-        buy: "",
         type: "factory",
         lenU: "in",
         retired: false,
@@ -194,7 +193,6 @@ function openAmmo(id) {
   $("amName").value = AM.name;
   $("amCal").value = AM.cal;
   $("amHold").value = AM.hold;
-  $("amBuy").value = AM.buy;
   HL_FIELDS.forEach(function (k) {
     $("hl" + k.charAt(0).toUpperCase() + k.slice(1)).value = AM[k] || "";
   });
@@ -227,10 +225,19 @@ function paintAmmoEd() {
   AM.hold = $("amHold").value;
   AM.cal = $("amCal").value;
   var w = stockWarn(AM, held),
-    bl = parseInt($("amBuy").value, 10),
-    q = parseInt($("amQty").value, 10);
-  if (amKind === "buy" && !home && bl > 0 && q > bl)
-    w = (w ? w + " " : "") + "That buy is more than the " + bl + " allowed at once.";
+    lim = calLimit(AM.cal),
+    q = parseInt($("amQty").value, 10),
+    after = calHeld(AM.cal) + (amKind === "buy" ? q : amKind === "set" ? q - held : 0);
+  if (amKind !== "use" && lim > 0 && q > 0 && after > lim)
+    w =
+      (w ? w + " " : "") +
+      "That would take " +
+      (AM.cal || "this calibre") +
+      " to " +
+      after +
+      ", over the certificate limit of " +
+      lim +
+      ".";
   $("amWarn").textContent = w;
   $("amWarn").className = w ? "hint warn" : "hint";
   var ev = live(DB.stockEv)
@@ -277,14 +284,13 @@ segVal($("hlLenU"), function (v) {
   AM.lenU = v;
   paintAmmoEd();
 });
-["amHold", "amBuy", "amQty", "amCal"].forEach(function (id) {
+["amHold", "amQty", "amCal"].forEach(function (id) {
   $(id).addEventListener("input", paintAmmoEd);
 });
 function saveAmmoRecord() {
   AM.name = $("amName").value.trim();
   AM.cal = $("amCal").value.trim();
   AM.hold = $("amHold").value.trim();
-  AM.buy = $("amBuy").value.trim();
   HL_FIELDS.forEach(function (k) {
     AM[k] = $("hl" + k.charAt(0).toUpperCase() + k.slice(1)).value.trim();
   });
@@ -482,7 +488,7 @@ function renderReport() {
     return;
   }
   var h =
-    '<table class="card"><thead><tr><th class="l">Calibre / ammo</th><th>In stock</th><th>May hold</th></tr></thead><tbody>';
+    '<table class="card"><thead><tr><th class="l">Calibre / ammo</th><th>In stock</th><th>Limit</th></tr></thead><tbody>';
   keys.forEach(function (k) {
     var c = cals[k],
       tot = calHeld(c.items[0].cal),
@@ -605,7 +611,7 @@ $("rpPrint").addEventListener("click", function () {
 });
 $("rpCsv").addEventListener("click", function () {
   var r = rpRange();
-  var csv = "Held now\nCalibre,Ammo,Kind,In stock,Calibre may hold\n";
+  var csv = "Held now\nCalibre,Ammo,Kind,In stock,Certificate limit\n";
   live(DB.stock).forEach(function (s) {
     csv +=
       [s.cal, s.name, s.type === "home" ? "Home load" : "Factory", stockHeld(s.id), calLimit(s.cal) || ""]

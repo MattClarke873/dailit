@@ -1,5 +1,5 @@
 // Dial it — offline cache. Bump VERSION when you change any file.
-const VERSION = "dialit-v9";
+const VERSION = "dialit-v10";
 const FILES = [
   "./",
   "./index.html",
