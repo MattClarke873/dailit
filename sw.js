@@ -1,8 +1,26 @@
 // Dial it — offline cache. Bump VERSION when you change any file.
-const VERSION = "dialit-v8";
+const VERSION = "dialit-v9";
 const FILES = [
   "./",
   "./index.html",
+  "./css/app.css",
+  "./fonts/archivo.woff2",
+  "./js/ballistics.js",
+  "./js/util.js",
+  "./js/store.js",
+  "./js/nav.js",
+  "./js/dial.js",
+  "./js/air.js",
+  "./js/results.js",
+  "./js/photo.js",
+  "./js/dope.js",
+  "./js/rifles.js",
+  "./js/ammo.js",
+  "./js/chrono.js",
+  "./js/log.js",
+  "./js/backup.js",
+  "./js/sync.js",
+  "./js/main.js",
   "./manifest.webmanifest",
   "./icon-192.png",
   "./icon-512.png",
